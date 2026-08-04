@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && cp index.html styles.css ui.js activities.js activities-modern.js teacher-data.js app.js vercel.json dist/",
-    "check": "node --check ui.js && node --check activities.js && node --check activities-modern.js && node --check teacher-data.js && node --check app.js"
+    "build": "rm -rf dist && mkdir -p dist && cp index.html styles.css activity-modes.css ui.js activities.js activities-modern.js activities-lab.js teacher-data.js app.js vercel.json dist/",
+    "check": "node --check ui.js && node --check activities.js && node --check activities-modern.js && node --check activities-lab.js && node --check teacher-data.js && node --check app.js"
   }
 }
