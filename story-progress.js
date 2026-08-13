@@ -20,5 +20,10 @@
     return status[key(part, index)] === "ok";
   }
 
-  return {getVisibleQuestionIndexes, isQuestionLocked};
+  function getNextEnabledQuestionIndex(questions, status, part, answeredIndex) {
+    return getVisibleQuestionIndexes(questions, status, part)
+      .find(index => index > answeredIndex && !isQuestionLocked(status, part, index)) ?? null;
+  }
+
+  return {getVisibleQuestionIndexes, isQuestionLocked, getNextEnabledQuestionIndex};
 });
