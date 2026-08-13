@@ -92,8 +92,15 @@ function createDocument() {
   return document;
 }
 
-async function createPortal() {
-  const hashes = [await hash("12"), await hash("8.00-9.00"), await hash("ja")];
+async function createPortal({type = "story", practice = false, timeFirst = false} = {}) {
+  const questionFixtures = [
+    {question: {text: "Hvor mange meter?", hint: "Hint"}, answer: "12"},
+    {question: {text: "Hvilket tidsrum er der fra klokken 08 til klokken 09?", hint: "Hint"}, answer: "8.00-9.00"},
+    {question: {text: "Vælg svaret", choices: ["Ja", "Nej"], hint: "Hint"}, answer: "ja"},
+    {question: {text: "Forklar hvorfor", open: true}}
+  ];
+  if (timeFirst) [questionFixtures[0], questionFixtures[1]] = [questionFixtures[1], questionFixtures[0]];
+  const hashes = await Promise.all(questionFixtures.map(({answer}) => answer ? hash(answer) : Promise.resolve("unused")));
   const document = createDocument();
   const ui = {
     brand: "Portal", tag: "Tag", home: "Home", language: "Language", grade: "grade",
@@ -104,7 +111,8 @@ async function createPortal() {
   };
   const activity = {
     id: "story-test",
-    type: "story",
+    type,
+    practice,
     icon: "📖",
     grade: 6,
     minutes: 5,
@@ -117,12 +125,7 @@ async function createPortal() {
       parts: [{
         title: "Part",
         body: ["Body"],
-        questions: [
-          {text: "Hvor mange meter?", hint: "Hint"},
-          {text: "Hvilket tidsrum er der fra klokken 08 til klokken 09?", hint: "Hint"},
-          {text: "Vælg svaret", choices: ["Ja", "Nej"], hint: "Hint"},
-          {text: "Forklar hvorfor", open: true}
-        ],
+        questions: questionFixtures.map(({question}) => question),
         keyQuestion: "Key",
         keyHint: "Key hint"
       }]
@@ -214,4 +217,16 @@ test("empty and incorrect story answers stay editable and do not reveal the next
   await portal.answer("q-0-0", "13");
   assert.equal(portal.elementById("q-0-0").disabled, false);
   assert.equal(portal.elementById("q-0-1"), null);
+});
+
+test("practice and challenge time controls preserve the existing stored-value rendering", async () => {
+  for (const options of [
+    {type: "task", practice: true, timeFirst: true},
+    {type: "challenge", timeFirst: true}
+  ]) {
+    const portal = await createPortal(options);
+    await portal.answerTime("q-0-0", "08:00", "09:15");
+    const times = portal.elements("[data-part-answer]").filter(input => input.dataset.partAnswer === "q-0-0");
+    assert.deepEqual(times.map(input => input.value), ["8.00", "9.15"]);
+  }
 });
