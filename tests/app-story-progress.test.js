@@ -92,7 +92,7 @@ function createDocument() {
   return document;
 }
 
-async function createPortal({type = "story", practice = false, timeFirst = false} = {}) {
+async function createPortal({type = "story", practice = false, timeFirst = false, durationFirst = false} = {}) {
   const questionFixtures = [
     {question: {text: "Hvor mange meter?", hint: "Hint"}, answer: "12"},
     {question: {text: "Hvilket tidsrum er der fra klokken 08 til klokken 09?", hint: "Hint"}, answer: "8.00-9.00"},
@@ -100,6 +100,12 @@ async function createPortal({type = "story", practice = false, timeFirst = false
     {question: {text: "Forklar hvorfor", open: true}}
   ];
   if (timeFirst) [questionFixtures[0], questionFixtures[1]] = [questionFixtures[1], questionFixtures[0]];
+  if (durationFirst) {
+    questionFixtures[0] = {
+      question: {text: "Hvor mange minutter varede dette tidsrum?", hint: "Hint"},
+      answer: "8"
+    };
+  }
   const hashes = await Promise.all(questionFixtures.map(({answer}) => answer ? hash(answer) : Promise.resolve("unused")));
   const document = createDocument();
   const ui = {
@@ -229,4 +235,13 @@ test("practice and challenge time controls preserve the existing stored-value re
     const times = portal.elements("[data-part-answer]").filter(input => input.dataset.partAnswer === "q-0-0");
     assert.deepEqual(times.map(input => input.value), ["8.00", "9.15"]);
   }
+});
+
+test("a duration prompt mentioning tidsrum renders a numeric answer control", async () => {
+  const portal = await createPortal({durationFirst: true});
+
+  assert.ok(portal.elementById("q-0-0"));
+  assert.equal(portal.elements("[data-part-answer]").length, 0);
+  await portal.answer("q-0-0", "8");
+  assert.equal(portal.elementById("q-0-0").disabled, true);
 });
