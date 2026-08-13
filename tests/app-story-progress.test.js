@@ -182,10 +182,18 @@ async function createPortal({type = "story", practice = false, timeFirst = false
       document.focused = null;
       await document.querySelectorAll("[data-check]").find(button => button.dataset.check === id).onclick();
     },
+    async checkTime(id) {
+      document.focused = null;
+      await document.querySelectorAll("[data-check]").find(button => button.dataset.check === id).onclick();
+    },
     async choose(id, value) {
       const input = document.querySelectorAll("[data-choice]")
         .find(choice => choice.dataset.choice === id && choice.value === value);
       input.onchange({target: input});
+      document.focused = null;
+      await document.querySelectorAll("[data-check]").find(button => button.dataset.check === id).onclick();
+    },
+    async checkChoice(id) {
       document.focused = null;
       await document.querySelectorAll("[data-check]").find(button => button.dataset.check === id).onclick();
     }
@@ -244,4 +252,30 @@ test("a duration prompt mentioning tidsrum renders a numeric answer control", as
   assert.equal(portal.elements("[data-part-answer]").length, 0);
   await portal.answer("q-0-0", "8");
   assert.equal(portal.elementById("q-0-0").disabled, true);
+});
+
+test("empty or incorrect story time answers restore focus to the first time input", async () => {
+  const portal = await createPortal({timeFirst: true});
+
+  await portal.checkTime("q-0-0");
+  assert.equal(portal.document.focused.dataset.partAnswer, "q-0-0");
+  assert.equal(portal.document.focused.dataset.side, "from");
+
+  await portal.answerTime("q-0-0", "07:00", "09:00");
+  assert.equal(portal.document.focused.dataset.partAnswer, "q-0-0");
+  assert.equal(portal.document.focused.dataset.side, "from");
+});
+
+test("empty or incorrect story radio answers restore focus to the first choice", async () => {
+  const portal = await createPortal();
+  await portal.answer("q-0-0", "12");
+  await portal.answerTime("q-0-1", "08:00", "09:00");
+
+  await portal.checkChoice("q-0-2");
+  assert.equal(portal.document.focused.dataset.choice, "q-0-2");
+  assert.equal(portal.document.focused.value, "Ja");
+
+  await portal.choose("q-0-2", "Nej");
+  assert.equal(portal.document.focused.dataset.choice, "q-0-2");
+  assert.equal(portal.document.focused.value, "Ja");
 });
