@@ -13,8 +13,9 @@ test("reveals the next question and keeps solved questions visible", () => {
   );
 });
 
-test("wrong answers do not reveal another question", () => {
+test("bad or empty answers do not reveal another question", () => {
   assert.deepEqual(progress.getVisibleQuestionIndexes([{}, {}], {"q-0-0": "bad"}, 0), [0]);
+  assert.deepEqual(progress.getVisibleQuestionIndexes([{}, {}], {"q-0-0": "empty"}, 0), [0]);
 });
 
 test("open reflection questions do not block the next checked question", () => {
@@ -24,4 +25,5 @@ test("open reflection questions do not block the next checked question", () => {
 test("only correct checked answers are locked", () => {
   assert.equal(progress.isQuestionLocked({"q-0-0": "ok"}, 0, 0), true);
   assert.equal(progress.isQuestionLocked({"q-0-0": "bad"}, 0, 0), false);
+  assert.equal(progress.isQuestionLocked({"q-0-0": "empty"}, 0, 0), false);
 });
