@@ -50,5 +50,6 @@ All formats distinguish empty required input (`empty`), malformed input (`format
 - Reviewed every task-modified file and the recovered script-order regression.
 - No changes were made to question generation or existing activity answer behavior.
 - The PowerShell `npm` shim is execution-policy blocked in this environment; verified equivalent `npm.cmd` commands were used.
-- Publication commit/tree SHAs are recorded after connector publication.
+- Implementation commit: `8153d17397f81a1fe2404e37aa8ae2c32b3147e4`.
+- Implementation tree: `631a638950485ee3e4ba50d3b5bf056e3b448425`.
 
