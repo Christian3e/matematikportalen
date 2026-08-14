@@ -18,7 +18,7 @@ function createDocument() {
     documentElement: {}, title: "", elements: [], activeElement: null, onkeydown: null, onkeyup: null,
     addEventListener() {},
     parse(html) {
-      this.elements = [...html.matchAll(/<(input|textarea|button|select|canvas|section|p)\b([^>]*)>/g)].map(match => {
+      this.elements = [...html.matchAll(/<(input|textarea|button|select|canvas|section|div|p)\b([^>]*)>/g)].map(match => {
         const attributes = attrs(match[2]);
         const element = {
           tagName: match[1].toUpperCase(), id: attributes.id || "", value: attributes.value || "",
@@ -26,6 +26,11 @@ function createDocument() {
           textContent: "",
           addEventListener(type, listener) { this.listeners[type] = listener; },
           closest(selector) {
+            const dataAttribute = selector.match(/^\[data-([\w-]+)\]$/);
+            if (dataAttribute) {
+              const key = dataAttribute[1].replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+              return this.dataset[key] !== undefined ? this : null;
+            }
             const tags = selector.split(",").map(value => value.trim().toUpperCase());
             return tags.includes(this.tagName) ? this : null;
           },
@@ -65,15 +70,17 @@ function createDocument() {
   return document;
 }
 
-function createPortal(search, arcadeOverride) {
+function createPortal(search, arcadeOverride, randomValues = []) {
   const document = createDocument();
   const location = {search};
   const raf = {next: 1, requested: [], cancelled: []};
   const timers = {next: 1, intervals: new Map(), timeouts: new Map(), clearedIntervals: [], clearedTimeouts: []};
   const events = {};
   const window = {PORTAL_STORY_PROGRESS: progress};
+  const controlledMath = Object.create(Math);
+  controlledMath.random = () => randomValues.length ? randomValues.shift() : Math.random();
   const context = {
-    window, document, location,
+    window, document, location, Math: controlledMath,
     history: {
       replaceState(_state, _title, url) { location.search = url; },
       pushState(_state, _title, url) { location.search = url; }
@@ -163,6 +170,82 @@ test("arcade setup and interactive controls ignore document gameplay shortcuts",
   assert.equal(calls.length, 1);
   assert.ok(calls[0].world);
   assert.deepEqual({key: calls[0].key, down: calls[0].down}, {key: "left", down: true});
+});
+
+test("snake arrow shortcuts ignore the language selector and unlocked fraction controls", () => {
+  const portal = createPortal(
+    "?aktivitet=game-fraction-snake",
+    undefined,
+    [0.8, 0.5, 0.85, 0.5, 0.95, 0.95]
+  );
+  const languageEvent = keyEvent("ArrowDown", portal.document.querySelector('[data-action="language"]'));
+  portal.document.onkeydown(languageEvent);
+  assert.equal(languageEvent.defaultPrevented, false);
+
+  portal.document.querySelector("[data-snake-start]").click();
+  const tick = [...portal.timers.intervals.values()].at(-1).callback;
+  portal.document.onkeydown(keyEvent("ArrowRight", portal.document.getElementById("snake-canvas")));
+  for (let step = 0; step < 7; step++) tick();
+
+  const questionTimer = [...portal.timers.intervals.values()].at(-1);
+  for (let second = 0; second < 5; second++) questionTimer.callback();
+  const answer = portal.document.querySelectorAll("[data-snake-answer]")[0];
+  assert.equal(answer.disabled, false);
+  const before = portal.html();
+  const answerEvent = keyEvent("ArrowRight", answer);
+  portal.document.onkeydown(answerEvent);
+  assert.equal(answerEvent.defaultPrevented, false);
+  assert.equal(portal.html(), before);
+});
+
+test("arcade number shortcuts answer focused quiz controls and complete feedback countdowns", () => {
+  const engine = {
+    create(kind, level) { return {kind, level, score: 0, lives: 3, keys: {}, over: false, checkpoint: false}; },
+    update(world) { world.checkpoint = true; },
+    input() {}, draw() {}
+  };
+  const scenarios = [
+    {code: "Digit2", result: "ok", delay: 1500},
+    {code: "Digit1", result: "bad", delay: 3000}
+  ];
+
+  for (const scenario of scenarios) {
+    const portal = createPortal("?aktivitet=game-arcade-space", engine);
+    portal.window.ARCADE_BANK.question = () => ({
+      prompt: "2 + 2 = ?", answer: "4", options: ["3", "4", "5", "6"]
+    });
+    portal.document.querySelector("[data-real-start]").click();
+    portal.raf.requested.at(-1).callback(16);
+    const quizTimer = [...portal.timers.intervals.values()].at(-1);
+    quizTimer.callback();
+    quizTimer.callback();
+    quizTimer.callback();
+
+    const focusedAnswer = portal.document.querySelectorAll("[data-real-answer]")[0];
+    assert.equal(portal.document.activeElement, focusedAnswer);
+    const languageEvent = keyEvent(scenario.code, portal.document.querySelector('[data-action="language"]'));
+    portal.document.onkeydown(languageEvent);
+    assert.equal(languageEvent.defaultPrevented, false);
+    assert.doesNotMatch(portal.html(), /game-result (?:ok|bad)/);
+
+    const shortcut = keyEvent(scenario.code, focusedAnswer);
+    portal.document.onkeydown(shortcut);
+    assert.equal(shortcut.defaultPrevented, true);
+    assert.match(portal.html(), new RegExp(`game-result ${scenario.result}`));
+
+    const feedback = [...portal.timers.timeouts.values()].at(-1);
+    assert.equal(feedback.delay, scenario.delay);
+    feedback.callback();
+    assert.match(portal.html(), /id="real-arcade-countdown"/);
+    assert.equal(portal.document.activeElement.id, "real-arcade-countdown");
+
+    const resume = [...portal.timers.intervals.values()].at(-1);
+    resume.callback();
+    assert.match(portal.html(), /id="real-arcade-countdown"/);
+    resume.callback();
+    assert.doesNotMatch(portal.html(), /id="real-arcade-countdown"/);
+    assert.equal(portal.document.activeElement.id, "real-arcade-canvas");
+  }
 });
 
 test("real arcade exposes localized controls and a live score and lives status outside the canvas", () => {
