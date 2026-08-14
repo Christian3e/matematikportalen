@@ -5,7 +5,7 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 
 const buildInputs = [
-  "THIRD_PARTY_NOTICES.md", "activities-lab.js", "activities-modern.js", "activities.js",
+  "THIRD_PARTY_NOTICES.md", "activities-lab.js", "activities-modern.js", "activities.js", "answer-validator.js",
   "activity-modes.css", "app.js", "arcade-engine.js", "arcade-games.js", "index.html",
   "polish.css", "question-bank.js", "snake-game.js", "story-progress.js", "styles.css",
   "teacher-data.js", "ui.js", "vendor/phaser/LICENSE.txt", "vendor/phaser/phaser.min.js", "vercel.json"
@@ -46,6 +46,7 @@ test("one integration build copies the complete explicit inventory byte-for-byte
   const declared = JSON.parse(inventoryMatch[1].replaceAll("'", "\"")).sort();
   assert.deepEqual(declared, buildInputs);
   assert.match(packageJson.scripts.check, /(?:^|&&\s*)node --check question-bank\.js(?=\s*(?:&&|$))/);
+  assert.match(packageJson.scripts.check, /(?:^|&&\s*)node --check answer-validator\.js(?=\s*(?:&&|$))/);
 
   execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "check"], {
     shell: process.platform === "win32",
@@ -71,3 +72,4 @@ test("index does not eagerly load Phaser", () => {
   const index = fs.readFileSync("index.html", "utf8");
   assert.doesNotMatch(index, /<script\b[^>]*\bsrc=["'][^"']*vendor\/phaser\/phaser\.min\.js[^"']*["'][^>]*>/i);
 });
+

@@ -47,6 +47,8 @@ test("index loads recovered game dependencies before teacher, story progress, an
     "teacher-data.js",
     "story-progress.js",
     "question-bank.js",
+    "answer-validator.js",
     "app.js"
   ]);
 });
+

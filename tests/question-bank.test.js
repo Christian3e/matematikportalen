@@ -311,17 +311,19 @@ test("browser global and CommonJS exports execute the same production logic", ()
   );
 });
 
-test("index loads the question bank before app without eagerly loading Phaser", () => {
+test("index loads the question bank then answer validator before app without eagerly loading Phaser", () => {
   const html = fs.readFileSync(path.resolve(__dirname, "..", "index.html"), "utf8");
   const scripts = [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)].map(match => match[1]);
   assert.ok(scripts.includes("question-bank.js"));
-  assert.ok(scripts.indexOf("question-bank.js") < scripts.indexOf("app.js"));
+  assert.ok(scripts.includes("answer-validator.js"));
+  assert.ok(scripts.indexOf("question-bank.js") < scripts.indexOf("answer-validator.js"));
+  assert.ok(scripts.indexOf("answer-validator.js") < scripts.indexOf("app.js"));
   assert.ok(!scripts.includes("vendor/phaser/phaser.min.js"));
 });
 
 test("declared build and syntax-check inventories include the question bank", () => {
   const expected = [
-    "THIRD_PARTY_NOTICES.md", "activities-lab.js", "activities-modern.js", "activities.js",
+    "THIRD_PARTY_NOTICES.md", "activities-lab.js", "activities-modern.js", "activities.js", "answer-validator.js",
     "activity-modes.css", "app.js", "arcade-engine.js", "arcade-games.js", "index.html",
     "polish.css", "question-bank.js", "snake-game.js", "story-progress.js", "styles.css",
     "teacher-data.js", "ui.js", "vendor/phaser/LICENSE.txt", "vendor/phaser/phaser.min.js", "vercel.json"
@@ -330,9 +332,11 @@ test("declared build and syntax-check inventories include the question bank", ()
   const inventoryMatch = packageJson.scripts.build.match(/const files=(\[[^;]+\])/);
   assert.ok(inventoryMatch, "build script must declare an explicit file inventory");
   assert.deepEqual(JSON.parse(inventoryMatch[1].replaceAll("'", "\"")).sort(), expected);
+  assert.match(packageJson.scripts.check, /(?:^|&&\s*)node --check answer-validator\.js(?=\s*(?:&&|$))/);
   assert.match(packageJson.scripts.check, /(?:^|&&\s*)node --check question-bank\.js(?=\s*(?:&&|$))/);
 });
 
 test("CommonJS exports without assigning QUESTION_BANK to the Node global", () => {
   assert.equal(commonJsPollutedGlobal, false);
 });
+
