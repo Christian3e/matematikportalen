@@ -6,8 +6,8 @@ const { execFileSync } = require("node:child_process");
 
 const buildInputs = [
   "THIRD_PARTY_NOTICES.md", "activities-lab.js", "activities-modern.js", "activities.js", "answer-validator.js",
-  "activity-modes.css", "app.js", "arcade-engine.js", "arcade-games.js", "index.html",
-  "polish.css", "question-bank.js", "snake-game.js", "story-progress.js", "styles.css",
+  "activity-modes.css", "app.js", "arcade-engine.js", "arcade-games.js", "game-runtime.js", "index.html",
+  "phaser-loader.js", "polish.css", "question-bank.js", "snake-game.js", "story-progress.js", "styles.css",
   "teacher-data.js", "ui.js", "vendor/phaser/LICENSE.txt", "vendor/phaser/phaser.min.js", "vercel.json"
 ].sort();
 
@@ -47,6 +47,8 @@ test("one integration build copies the complete explicit inventory byte-for-byte
   assert.deepEqual(declared, buildInputs);
   assert.match(packageJson.scripts.check, /(?:^|&&\s*)node --check question-bank\.js(?=\s*(?:&&|$))/);
   assert.match(packageJson.scripts.check, /(?:^|&&\s*)node --check answer-validator\.js(?=\s*(?:&&|$))/);
+  assert.match(packageJson.scripts.check, /(?:^|&&\s*)node --check phaser-loader\.js(?=\s*(?:&&|$))/);
+  assert.match(packageJson.scripts.check, /(?:^|&&\s*)node --check game-runtime\.js(?=\s*(?:&&|$))/);
 
   execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "check"], {
     shell: process.platform === "win32",
