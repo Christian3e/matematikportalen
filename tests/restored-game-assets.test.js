@@ -46,6 +46,7 @@ test("index loads recovered game dependencies before teacher, story progress, an
     "arcade-engine.js",
     "teacher-data.js",
     "story-progress.js",
+    "question-bank.js",
     "app.js"
   ]);
 });
