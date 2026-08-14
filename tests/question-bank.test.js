@@ -3,9 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const {execFileSync} = require("node:child_process");
 
+delete globalThis.QUESTION_BANK;
 const bank = require("../question-bank.js");
+const commonJsPollutedGlobal = Object.prototype.hasOwnProperty.call(globalThis, "QUESTION_BANK");
+delete globalThis.QUESTION_BANK;
 
 const QUESTION_KEYS = [
   "id", "templateId", "grade", "topic", "subtopic", "difficulty", "mode",
@@ -26,23 +28,6 @@ function seeded(seed) {
 function sequence(values) {
   let index = 0;
   return () => values[index++] ?? 0.5;
-}
-
-function npm(...args) {
-  return execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", args, {
-    cwd: path.resolve(__dirname, ".."),
-    shell: process.platform === "win32",
-    encoding: "utf8"
-  });
-}
-
-function listFiles(root, directory = root) {
-  return fs.readdirSync(directory, {withFileTypes: true}).flatMap(entry => {
-    const absolute = path.join(directory, entry.name);
-    return entry.isDirectory()
-      ? listFiles(root, absolute)
-      : [path.relative(root, absolute).split(path.sep).join("/")];
-  }).sort();
 }
 
 function validTemplate() {
@@ -334,19 +319,20 @@ test("index loads the question bank before app without eagerly loading Phaser", 
   assert.ok(!scripts.includes("vendor/phaser/phaser.min.js"));
 });
 
-test("build and syntax-check inventories include the bank with exact source/dist parity", () => {
+test("declared build and syntax-check inventories include the question bank", () => {
   const expected = [
     "THIRD_PARTY_NOTICES.md", "activities-lab.js", "activities-modern.js", "activities.js",
     "activity-modes.css", "app.js", "arcade-engine.js", "arcade-games.js", "index.html",
     "polish.css", "question-bank.js", "snake-game.js", "story-progress.js", "styles.css",
     "teacher-data.js", "ui.js", "vendor/phaser/LICENSE.txt", "vendor/phaser/phaser.min.js", "vercel.json"
   ].sort();
+  const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf8"));
+  const inventoryMatch = packageJson.scripts.build.match(/const files=(\[[^;]+\])/);
+  assert.ok(inventoryMatch, "build script must declare an explicit file inventory");
+  assert.deepEqual(JSON.parse(inventoryMatch[1].replaceAll("'", "\"")).sort(), expected);
+  assert.match(packageJson.scripts.check, /(?:^|&&\s*)node --check question-bank\.js(?=\s*(?:&&|$))/);
+});
 
-  assert.match(npm("run", "check"), /> node --check/);
-  assert.match(npm("run", "build"), /> node -e/);
-  const dist = path.resolve(__dirname, "..", "dist");
-  assert.deepEqual(listFiles(dist), expected);
-  for (const file of expected) {
-    assert.deepEqual(fs.readFileSync(path.join(dist, file)), fs.readFileSync(path.resolve(__dirname, "..", file)), file);
-  }
+test("CommonJS exports without assigning QUESTION_BANK to the Node global", () => {
+  assert.equal(commonJsPollutedGlobal, false);
 });

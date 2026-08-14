@@ -1,9 +1,9 @@
-(function (root, factory) {
+(function (browserWindow, factory) {
   "use strict";
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
-  if (root) root.QUESTION_BANK = api;
-})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  if (browserWindow) browserWindow.QUESTION_BANK = api;
+})(typeof window !== "undefined" ? window : null, function () {
   "use strict";
 
   const LANGUAGES = ["da", "en", "fr"];
