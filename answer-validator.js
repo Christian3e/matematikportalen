@@ -20,6 +20,7 @@
       if (!Number.isFinite(raw)) return parsed("format");
       const value = Object.is(raw, -0) ? 0 : raw;
       const text = String(value);
+      if (!/^[+-]?\d+(?:[.,]\d+)?$/.test(text)) return parsed("format");
       const separator = text.match(/[.,](\d+)$/);
       return parsed("ok", value, separator ? separator[1].length : 0);
     }

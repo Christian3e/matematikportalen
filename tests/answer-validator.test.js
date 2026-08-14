@@ -53,6 +53,15 @@ test("numbers reject exponents, prose, nonfinite values, and excess precision", 
   assert.deepEqual(validator.check({type: "number", answer: 1.2, precision: 1}, "1.3"), result(false, false, 1.3, null));
 });
 
+test("numbers reject numeric exponent-form values even at zero precision", required(), () => {
+  for (const raw of [1e-7, 1e21]) {
+    assert.deepEqual(
+      validator.check({type: "number", answer: raw, precision: 0}, raw),
+      result(false, false, null, "format")
+    );
+  }
+});
+
 test("required primitive values report whitespace-only input as empty", required(), () => {
   for (const question of [
     {type: "number", answer: 1, precision: 0},
